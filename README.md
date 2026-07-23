@@ -18,8 +18,7 @@ deploy/
   backups/                          # local restore files (not committed)
 ```
 
-`.env` and `backups/` are git-ignored on purpose — they contain real
-credentials and real database/upload data and must never be pushed to this
+`backups/` are git-ignored on purpose — they contain real database/upload data and must never be pushed to this
 repository.
 
 ## Setup
