@@ -1,4 +1,4 @@
-# amp-deploy
+# AMP + AMP Dashboard Deployment Scripts
 
 Image-only deployment scripts for **AMP** and **amp-dashboard**. This repo does
 not build or contain application source code — it pulls pre-built container
