@@ -33,12 +33,12 @@ repository.
 ## Usage
 
 ```
-./deploy.sh deploy [--with-traefik|--without-traefik]   # pull images, start/update stacks
-./deploy.sh up      [--with-traefik|--without-traefik]  # start/update stacks (no pull)
-./deploy.sh down    [--with-traefik|--without-traefik]  # stop stacks (volumes kept)
-./deploy.sh restart [--with-traefik|--without-traefik]  # down + up
-./deploy.sh pull    [--with-traefik|--without-traefik]  # pull images only
-./deploy.sh status  [--with-traefik|--without-traefik]  # show running containers
+./deploy.sh deploy [--with-traefik|--without-traefik] [--amp-only|--dashboard-only]   # pull images, start/update stacks
+./deploy.sh up      [--with-traefik|--without-traefik] [--amp-only|--dashboard-only]  # start/update stacks (no pull)
+./deploy.sh down    [--with-traefik|--without-traefik] [--amp-only|--dashboard-only]  # stop stacks (volumes kept)
+./deploy.sh restart [--with-traefik|--without-traefik] [--amp-only|--dashboard-only]  # down + up
+./deploy.sh pull    [--with-traefik|--without-traefik] [--amp-only|--dashboard-only]  # pull images only
+./deploy.sh status  [--with-traefik|--without-traefik] [--amp-only|--dashboard-only]  # show running containers
 ./deploy.sh logs <traefik|amp|dashboard|container> [service]
 ```
 
@@ -46,6 +46,11 @@ Traefik is optional and can be toggled via `--with-traefik` /
 `--without-traefik`, or the `USE_TRAEFIK=true|false` env var. If neither is
 set, Traefik is enabled automatically only when `traefik/docker-compose.yml`
 exists.
+
+By default both the AMP and amp-dashboard stacks are deployed together. Use
+`--amp-only` or `--dashboard-only` (or `DEPLOY_TARGET=amp|dashboard` in
+`.env`) to limit `deploy`/`up`/`down`/`restart`/`pull`/`status` to a single
+stack.
 
 ## Restores
 
