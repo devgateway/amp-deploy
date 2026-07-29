@@ -10,12 +10,13 @@ images and runs them with Docker Compose. Traefik is optional.
 deploy/
   .env                              # your local config (not committed)
   .env.example                      # sample/reference config
-  deploy.sh                         # main orchestrator script
+  deploy.sh                         # main orchestrator script (deploy/up/down/restore)
+  backup.sh                         # backup script for AMP + Dashboard data
   amp/docker-compose.yml            # AMP app + bundled AMP Postgres DB
   amp-dashboard/docker-compose.yml            # Dashboard stack
   amp-dashboard/docker-compose.traefik.yml    # optional Traefik overlay for dashboard
   traefik/docker-compose.yml        # optional shared Traefik stack
-  backups/                          # local restore files (not committed)
+  backups/                          # local backup/restore files (not committed)
 ```
 
 `backups/` are git-ignored on purpose — they contain real database/upload data and must never be pushed to this
@@ -119,6 +120,45 @@ Note: `down`, `restart`, `pull`, and `status` respect the same scope — e.g.
 dashboard (and Traefik) running untouched. `./deploy.sh logs` is always
 stack-scoped by its own `<amp|dashboard|traefik|container>` argument,
 regardless of `DEPLOY_TARGET`.
+
+## Backups
+
+`backup.sh` creates backups for **AMP and Dashboard separately** (or both at
+once), in formats that plug directly into the restore variables below.
+
+| Target | What gets backed up | Output file |
+|---|---|---|
+| AMP | Postgres database (`AMP_DB_NAME`) | `backups/amp-db_<timestamp>.dump` |
+| Dashboard | Postgres `viz` database | `backups/dashboard-postgres_<timestamp>.dump` |
+| Dashboard | MySQL `wordpress` database | `backups/dashboard-mysql_<timestamp>.sql` |
+| Dashboard | `wordpress` uploads volume | `backups/dashboard-uploads_<timestamp>.tar.gz` |
+
+```
+./backup.sh                    # back up AMP + Dashboard (DBs + dashboard uploads)
+./backup.sh --amp-only         # back up AMP only
+./backup.sh --dashboard-only   # back up Dashboard only (DBs + uploads)
+./backup.sh --db-only          # skip the dashboard uploads volume
+./backup.sh --uploads-only     # only back up the dashboard uploads volume
+./backup.sh --keep 14          # prune backups older than 14 days (default: 30, 0 = keep all)
+./backup.sh --dest /path/to/dir
+```
+
+Each run requires the relevant containers to already be running (it uses
+`docker exec`/`docker run` against the live stack, no downtime needed). At
+the end it prints the exact `.env` lines to set so `deploy.sh`'s restore step
+can pick up the new backup:
+
+```
+AMP_DB_BACKUP_FILE=backups/amp-db_20260729_020000.dump
+DASHBOARD_POSTGRES_BACKUP_FILE=backups/dashboard-postgres_20260729_020000.dump
+DASHBOARD_MYSQL_BACKUP_FILE=backups/dashboard-mysql_20260729_020000.sql
+DASHBOARD_UPLOADS_SOURCE=backups/dashboard-uploads_20260729_020000.tar.gz
+```
+
+To automate, add to crontab, e.g. nightly at 2am:
+```
+0 2 * * * /opt/amp/deploy/backup.sh >> /var/log/amp-backup.log 2>&1
+```
 
 ## Restores
 
