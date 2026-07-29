@@ -15,13 +15,17 @@
 #     traefik/docker-compose.yml                 (optional)
 #
 # Usage:
-#   ./deploy.sh deploy [--with-traefik|--without-traefik]
-#   ./deploy.sh up [--with-traefik|--without-traefik]
-#   ./deploy.sh down [--with-traefik|--without-traefik]
-#   ./deploy.sh restart [--with-traefik|--without-traefik]
-#   ./deploy.sh pull [--with-traefik|--without-traefik]
-#   ./deploy.sh status [--with-traefik|--without-traefik]
+#   ./deploy.sh deploy [--with-traefik|--without-traefik] [--amp-only|--dashboard-only]
+#   ./deploy.sh up [--with-traefik|--without-traefik] [--amp-only|--dashboard-only]
+#   ./deploy.sh down [--with-traefik|--without-traefik] [--amp-only|--dashboard-only]
+#   ./deploy.sh restart [--with-traefik|--without-traefik] [--amp-only|--dashboard-only]
+#   ./deploy.sh pull [--with-traefik|--without-traefik] [--amp-only|--dashboard-only]
+#   ./deploy.sh status [--with-traefik|--without-traefik] [--amp-only|--dashboard-only]
 #   ./deploy.sh logs <traefik|amp|dashboard|container> [service]
+#
+# By default both AMP and amp-dashboard stacks are deployed. Use --amp-only or
+# --dashboard-only (or DEPLOY_TARGET=amp|dashboard in .env) to limit actions to
+# a single stack.
 # =============================================================================
 
 set -euo pipefail
@@ -50,13 +54,15 @@ die()  { echo -e "${RED}[$(date '+%Y-%m-%d %T')] ERROR:${NC} $*" >&2; exit 1; }
 
 USE_TRAEFIK=""
 CLI_TRAEFIK_MODE=""
+DEPLOY_TARGET=""
+CLI_DEPLOY_TARGET=""
 
 usage() {
   cat <<EOF
 
   AMP image-only deploy script
 
-  Usage:  $0 <command> [args] [--with-traefik|--without-traefik]
+  Usage:  $0 <command> [args] [--with-traefik|--without-traefik] [--amp-only|--dashboard-only]
 
   Commands:
     deploy              Pull images, then start/update stacks
@@ -73,8 +79,13 @@ usage() {
     --with-traefik      Force include Traefik and dashboard Traefik override
     --without-traefik   Force skip Traefik and dashboard Traefik override
 
+  Stack scope toggle:
+    --amp-only          Only act on the AMP stack (skip amp-dashboard)
+    --dashboard-only    Only act on the amp-dashboard stack (skip AMP)
+
   Env toggles:
     USE_TRAEFIK=true|false
+    DEPLOY_TARGET=all|amp|dashboard
 
 EOF
 }
@@ -90,6 +101,14 @@ parse_common_flags() {
         CLI_TRAEFIK_MODE="false"
         shift
         ;;
+      --amp-only)
+        CLI_DEPLOY_TARGET="amp"
+        shift
+        ;;
+      --dashboard-only)
+        CLI_DEPLOY_TARGET="dashboard"
+        shift
+        ;;
       --help|-h)
         usage
         exit 0
@@ -102,12 +121,46 @@ parse_common_flags() {
   REMAINING_ARGS=("$@")
 }
 
+resolve_deploy_target() {
+  local requested requested_lc
+
+  requested="${CLI_DEPLOY_TARGET:-${DEPLOY_TARGET:-all}}"
+  requested_lc="$(printf '%s' "$requested" | tr '[:upper:]' '[:lower:]')"
+
+  case "$requested_lc" in
+    all|both|"")
+      DEPLOY_TARGET="all"
+      ;;
+    amp)
+      DEPLOY_TARGET="amp"
+      ;;
+    dashboard|dash)
+      DEPLOY_TARGET="dashboard"
+      ;;
+    *)
+      die "Invalid DEPLOY_TARGET value: '$requested' (expected all/amp/dashboard)"
+      ;;
+  esac
+}
+
+target_includes_amp() {
+  [[ "$DEPLOY_TARGET" == "all" || "$DEPLOY_TARGET" == "amp" ]]
+}
+
+target_includes_dashboard() {
+  [[ "$DEPLOY_TARGET" == "all" || "$DEPLOY_TARGET" == "dashboard" ]]
+}
+
 check_requirements() {
   command -v docker >/dev/null 2>&1 || die "docker is not installed"
   docker compose version >/dev/null 2>&1 || die "'docker compose' plugin not found"
   [[ -f "$ENV_FILE" ]] || die ".env not found at $ENV_FILE"
-  [[ -f "$AMP_COMPOSE" ]] || die "AMP compose not found at $AMP_COMPOSE"
-  [[ -f "$DASH_COMPOSE" ]] || die "Dashboard compose not found at $DASH_COMPOSE"
+  if target_includes_amp; then
+    [[ -f "$AMP_COMPOSE" ]] || die "AMP compose not found at $AMP_COMPOSE"
+  fi
+  if target_includes_dashboard; then
+    [[ -f "$DASH_COMPOSE" ]] || die "Dashboard compose not found at $DASH_COMPOSE"
+  fi
 }
 
 load_env() {
@@ -718,11 +771,19 @@ pull_images() {
     info "Traefik is disabled; skipping Traefik image pull"
   fi
 
-  log "Pulling AMP images..."
-  amp_compose pull --quiet
+  if target_includes_amp; then
+    log "Pulling AMP images..."
+    amp_compose pull --quiet
+  else
+    info "AMP is excluded from this run (--dashboard-only); skipping AMP image pull"
+  fi
 
-  log "Pulling dashboard images..."
-  dash_compose pull --quiet
+  if target_includes_dashboard; then
+    log "Pulling dashboard images..."
+    dash_compose pull --quiet
+  else
+    info "Dashboard is excluded from this run (--amp-only); skipping dashboard image pull"
+  fi
 }
 
 up_all() {
@@ -733,27 +794,43 @@ up_all() {
     info "Traefik is disabled; skipping Traefik startup"
   fi
 
-  log "Starting AMP database service..."
-  amp_compose up -d amp-db
-  init_amp_db
+  if target_includes_amp; then
+    log "Starting AMP database service..."
+    amp_compose up -d amp-db
+    init_amp_db
 
-  log "Starting AMP application service..."
-  amp_compose up -d amp --remove-orphans
+    log "Starting AMP application service..."
+    amp_compose up -d amp --remove-orphans
+  else
+    info "AMP is excluded from this run (--dashboard-only); skipping AMP startup"
+  fi
 
-  log "Starting dashboard database services..."
-  dash_compose up -d mysql postgres
-  init_dashboard_data
+  if target_includes_dashboard; then
+    log "Starting dashboard database services..."
+    dash_compose up -d mysql postgres
+    init_dashboard_data
 
-  log "Starting dashboard application services..."
-  dash_compose up -d --remove-orphans
+    log "Starting dashboard application services..."
+    dash_compose up -d --remove-orphans
+  else
+    info "Dashboard is excluded from this run (--amp-only); skipping dashboard startup"
+  fi
 }
 
 down_all() {
-  warn "Stopping dashboard stack..."
-  dash_compose down || true
+  if target_includes_dashboard; then
+    warn "Stopping dashboard stack..."
+    dash_compose down || true
+  else
+    info "Dashboard is excluded from this run (--amp-only); leaving dashboard stack as-is"
+  fi
 
-  warn "Stopping AMP stack..."
-  amp_compose down || true
+  if target_includes_amp; then
+    warn "Stopping AMP stack..."
+    amp_compose down || true
+  else
+    info "AMP is excluded from this run (--dashboard-only); leaving AMP stack as-is"
+  fi
 
   if [[ "$USE_TRAEFIK" == "true" ]]; then
     warn "Stopping Traefik stack..."
@@ -772,11 +849,15 @@ show_status() {
     info "Disabled"
   fi
 
-  info "================ AMP ===================="
-  amp_compose ps
+  if target_includes_amp; then
+    info "================ AMP ===================="
+    amp_compose ps
+  fi
 
-  info "================ Dashboard =============="
-  dash_compose ps
+  if target_includes_dashboard; then
+    info "================ Dashboard =============="
+    dash_compose ps
+  fi
 }
 
 show_logs() {
@@ -824,6 +905,7 @@ case "$COMMAND" in
     check_requirements
     load_env
     resolve_traefik_mode
+    resolve_deploy_target
     ecr_login
     registry_login
     pull_images
@@ -835,6 +917,7 @@ case "$COMMAND" in
     check_requirements
     load_env
     resolve_traefik_mode
+    resolve_deploy_target
     up_all
     log "Stacks started."
     show_status
@@ -843,6 +926,7 @@ case "$COMMAND" in
     check_requirements
     load_env
     resolve_traefik_mode
+    resolve_deploy_target
     down_all
     log "Stacks stopped."
     ;;
@@ -850,6 +934,7 @@ case "$COMMAND" in
     check_requirements
     load_env
     resolve_traefik_mode
+    resolve_deploy_target
     down_all
     up_all
     log "Restart complete."
@@ -859,6 +944,7 @@ case "$COMMAND" in
     check_requirements
     load_env
     resolve_traefik_mode
+    resolve_deploy_target
     ecr_login
     registry_login
     pull_images
@@ -868,12 +954,14 @@ case "$COMMAND" in
     check_requirements
     load_env
     resolve_traefik_mode
+    resolve_deploy_target
     show_status
     ;;
   logs)
     check_requirements
     load_env
     resolve_traefik_mode
+    resolve_deploy_target
     show_logs "${REMAINING_ARGS[0]:-help}" "${REMAINING_ARGS[1]:-}"
     ;;
   *)
