@@ -579,12 +579,46 @@ restore_dashboard_uploads_if_needed() {
   fi
 }
 
+update_dashboard_site_url() {
+  local raw_domain escaped_domain site_url home_url
+  local db_name db_user db_password mysql_auth
+
+  raw_domain="${DASHBOARD_DOMAIN:-}"
+  if [[ -z "$raw_domain" ]]; then
+    warn "DASHBOARD_DOMAIN is empty; skipping WordPress siteurl/home update"
+    return 0
+  fi
+
+  escaped_domain="$(escape_sql_literal "$raw_domain")"
+  site_url="https://${escaped_domain}/wp"
+  home_url="https://${escaped_domain}"
+
+  db_name="${DASHBOARD_MYSQL_DB_NAME:-wordpress}"
+  db_user="${DASHBOARD_MYSQL_WP_USER:-wordpress}"
+  db_password="${DASHBOARD_MYSQL_WP_PASSWORD:-}"
+
+  if [[ -n "$db_password" ]]; then
+    mysql_auth="-u${db_user} -p${db_password} ${db_name}"
+  else
+    mysql_auth="-u${db_user} ${db_name}"
+  fi
+
+  log "Updating WordPress siteurl to '${site_url}' and home to '${home_url}'"
+  docker exec -i "$DASHBOARD_MYSQL_CONTAINER" sh -lc \
+    "mysql ${mysql_auth} -e \"UPDATE wp_options SET option_value='${site_url}' WHERE option_name='siteurl'; UPDATE wp_options SET option_value='${home_url}' WHERE option_name='home';\""
+
+  info "Verifying WordPress siteurl/home:"
+  docker exec -i "$DASHBOARD_MYSQL_CONTAINER" sh -lc \
+    "mysql ${mysql_auth} -e \"SELECT option_name, option_value FROM wp_options WHERE option_name IN ('siteurl','home');\""
+}
+
 init_dashboard_data() {
   log "Waiting for dashboard DB readiness..."
   wait_for_dashboard_dbs
   restore_dashboard_postgres_if_needed
   restore_dashboard_mysql_if_needed
   restore_dashboard_uploads_if_needed
+  update_dashboard_site_url
 }
 
 install_linux_packages_noninteractive() {

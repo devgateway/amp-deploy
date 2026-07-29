@@ -12,6 +12,7 @@ deploy/
   .env.example                      # sample/reference config
   deploy.sh                         # main orchestrator script (deploy/up/down/restore)
   backup.sh                         # backup script for AMP + Dashboard data
+  reinstall.sh                      # reinstall/upgrade script (keep or wipe data)
   amp/docker-compose.yml            # AMP app + bundled AMP Postgres DB
   amp-dashboard/docker-compose.yml            # Dashboard stack
   amp-dashboard/docker-compose.traefik.yml    # optional Traefik overlay for dashboard
@@ -174,6 +175,61 @@ If a path is left unset, that restore step is skipped. When running from an
 interactive terminal, the script asks for confirmation before each configured
 restore. For non-interactive runs (CI/cron), set `ASSUME_YES_RESTORE=true` to
 auto-approve.
+
+After the dashboard DB steps run (on every `deploy`/`up`, including via
+`reinstall.sh`), `deploy.sh` also updates WordPress's site URL to match
+`DASHBOARD_DOMAIN`, equivalent to:
+
+```sql
+UPDATE wp_options SET option_value = 'https://<DASHBOARD_DOMAIN>/wp' WHERE option_name = 'siteurl';
+UPDATE wp_options SET option_value = 'https://<DASHBOARD_DOMAIN>' WHERE option_name = 'home';
+```
+
+and then prints the result of:
+
+```sql
+SELECT option_name, option_value FROM wp_options WHERE option_name IN ('siteurl','home');
+```
+
+This only runs when Dashboard is included (`all` or `dashboard`) and is
+skipped with a warning if `DASHBOARD_DOMAIN` is unset.
+
+## Reinstall / Upgrade
+
+`reinstall.sh` handles both routine upgrades and full reinstalls, for AMP and
+Dashboard **independently** via the same `--amp-only`/`--dashboard-only`
+scoping used elsewhere. It delegates image pulling and container startup to
+`deploy.sh deploy`, so restores configured in `.env` still apply afterward.
+
+| Mode | What happens | Data impact |
+|---|---|---|
+| `--keep-data` (default) | Pulls latest images, recreates containers via `deploy.sh deploy` | Named volumes (DBs, uploads) untouched — safe in-place upgrade |
+| `--wipe-data` | Backs up (unless `--skip-backup`), stops the stack and removes its named volumes, then pulls fresh images and redeploys from scratch | **Destructive** — databases/uploads for the selected stack are deleted before redeploying |
+
+```
+./reinstall.sh                              # upgrade in place: AMP + Dashboard (keep data)
+./reinstall.sh --amp-only                   # upgrade AMP only, keep its data
+./reinstall.sh --dashboard-only             # upgrade Dashboard only, keep its data
+
+./reinstall.sh --wipe-data --amp-only       # fresh reinstall of AMP only (prompts to confirm)
+./reinstall.sh --wipe-data --dashboard-only # fresh reinstall of Dashboard only
+./reinstall.sh --wipe-data                  # fresh reinstall of BOTH (prompts once per stack)
+
+./reinstall.sh --wipe-data --yes            # skip the interactive confirmation prompt
+./reinstall.sh --wipe-data --skip-backup    # skip the automatic pre-wipe backup (not recommended)
+```
+
+`--wipe-data` only removes the named volumes declared in that stack's own
+compose file (`amp/docker-compose.yml` for AMP, `amp-dashboard/docker-compose.yml`
+for Dashboard) — wiping AMP never touches Dashboard's databases/uploads, and
+vice versa. Traefik is never wiped (it holds no application data).
+
+Because `--wipe-data` is destructive, it always requires confirmation — type
+`wipe AMP` / `wipe Dashboard` when prompted, or pass `--yes` (or set
+`ASSUME_YES_WIPE=true` for non-interactive/CI use, mirroring
+`ASSUME_YES_RESTORE`). By default it also runs `backup.sh` (scoped to the
+same target) before wiping, and aborts the wipe if that backup fails; use
+`--skip-backup` to bypass this safety net.
 
 ## Notes
 
