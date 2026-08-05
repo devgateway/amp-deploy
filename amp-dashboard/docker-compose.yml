@@ -243,7 +243,7 @@ services:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka:8761/eureka/"
       LOGGING_FILE_NAME: /var/log/app/amp-funding.log
       SPRING_LIQUIBASE_ENABLED: "true"
-      SPRING_LIQUIBASE_DEFAULT_SCHEMA: "amp_funding"
+      SPRING_LIQUIBASE_DEFAULT-SCHEMA: "amp_funding"
       SPRING_LIQUIBASE_CHANGE-LOG: "classpath:liquibase-changeLog.xml"
       SPRING_JPA_PROPERTIES_HIBERNATE_DEFAULT_SCHEMA: "amp_funding"
     depends_on:
@@ -272,7 +272,7 @@ services:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka:8761/eureka/"
       LOGGING_FILE_NAME: /var/log/app/amp-indicator-dashboard.log
       SPRING_LIQUIBASE_ENABLED: "true"
-      SPRING_LIQUIBASE_DEFAULT_SCHEMA: "amp_indicator_dashboard"
+      SPRING_LIQUIBASE_DEFAULT-SCHEMA: "amp_indicator_dashboard"
       SPRING_LIQUIBASE_CHANGE-LOG: "classpath:liquibase-changeLog.xml"
       SPRING_JPA_PROPERTIES_HIBERNATE_DEFAULT_SCHEMA: "amp_indicator_dashboard"
     depends_on:
@@ -301,7 +301,7 @@ services:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka:8761/eureka/"
       LOGGING_FILE_NAME: /var/log/app/amp-ndc-financing.log
       SPRING_LIQUIBASE_ENABLED: "true"
-      SPRING_LIQUIBASE_DEFAULT_SCHEMA: "amp_ndc_financing"
+      SPRING_LIQUIBASE_DEFAULT-SCHEMA: "amp_ndc_financing"
       SPRING_LIQUIBASE_CHANGE-LOG: "classpath:liquibase-changeLog.xml"
       SPRING_JPA_PROPERTIES_HIBERNATE_DEFAULT_SCHEMA: "amp_ndc_financing"
     depends_on:
@@ -330,7 +330,7 @@ services:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka:8761/eureka/"
       LOGGING_FILE_NAME: /var/log/app/amp-ndc-scenario.log
       SPRING_LIQUIBASE_ENABLED: "true"
-      SPRING_LIQUIBASE_DEFAULT_SCHEMA: "amp_ndc_scenario"
+      SPRING_LIQUIBASE_DEFAULT-SCHEMA: "amp_ndc_scenario"
       SPRING_LIQUIBASE_CHANGE-LOG: "classpath:liquibase-changeLog.xml"
       SPRING_JPA_PROPERTIES_HIBERNATE_DEFAULT_SCHEMA: "amp_ndc_scenario"
     depends_on:
@@ -359,7 +359,7 @@ services:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka:8761/eureka/"
       LOGGING_FILE_NAME: /var/log/app/amp-ndc-emissions.log
       SPRING_LIQUIBASE_ENABLED: "true"
-      SPRING_LIQUIBASE_DEFAULT_SCHEMA: "amp_ndc_emissions"
+      SPRING_LIQUIBASE_DEFAULT-SCHEMA: "amp_ndc_emissions"
       SPRING_LIQUIBASE_CHANGE-LOG: "classpath:liquibase-changeLog.xml"
       SPRING_JPA_PROPERTIES_HIBERNATE_DEFAULT_SCHEMA: "amp_ndc_emissions"
     depends_on:
@@ -388,7 +388,7 @@ services:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka:8761/eureka/"
       LOGGING_FILE_NAME: /var/log/app/map-service.log
       SPRING_LIQUIBASE_ENABLED: "true"
-      SPRING_LIQUIBASE_DEFAULT_SCHEMA: "map_service"
+      SPRING_LIQUIBASE_DEFAULT-SCHEMA: "map_service"
       SPRING_LIQUIBASE_CHANGE-LOG: "classpath:liquibase-changeLog.xml"
       SPRING_JPA_PROPERTIES_HIBERNATE_DEFAULT_SCHEMA: "map_service"
     depends_on:
@@ -417,7 +417,7 @@ services:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka:8761/eureka/"
       LOGGING_FILE_NAME: /var/log/app/amp-indicator-progress.log
       SPRING_LIQUIBASE_ENABLED: "true"
-      SPRING_LIQUIBASE_DEFAULT_SCHEMA: "amp_indicator_progress"
+      SPRING_LIQUIBASE_DEFAULT-SCHEMA: "amp_indicator_progress"
       SPRING_LIQUIBASE_CHANGE-LOG: "classpath:liquibase-changeLog.xml"
       SPRING_JPA_PROPERTIES_HIBERNATE_DEFAULT_SCHEMA: "amp_indicator_progress"
     depends_on:
@@ -448,7 +448,7 @@ services:
       WOCAT_VERSION_URL_EN: "/en/api/v2/questionnaires/"
       LOGGING_FILE_NAME: /var/log/app/amp-wocat.log
       SPRING_LIQUIBASE_ENABLED: "true"
-      SPRING_LIQUIBASE_DEFAULT_SCHEMA: "amp_wocat"
+      SPRING_LIQUIBASE_DEFAULT-SCHEMA: "amp_wocat"
       SPRING_LIQUIBASE_CHANGE-LOG: "classpath:liquibase-changeLog.xml"
       SPRING_JPA_PROPERTIES_HIBERNATE_DEFAULT_SCHEMA: "amp_wocat"
     depends_on:
