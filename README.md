@@ -177,12 +177,12 @@ restore. For non-interactive runs (CI/cron), set `ASSUME_YES_RESTORE=true` to
 auto-approve.
 
 After the dashboard DB steps run (on every `deploy`/`up`, including via
-`reinstall.sh`), `deploy.sh` also updates WordPress's site URL to match
-`DASHBOARD_DOMAIN`, equivalent to:
+`reinstall.sh`), `deploy.sh` also updates WordPress's site URL to
+`DASHBOARD_SITE_URL`, equivalent to:
 
 ```sql
-UPDATE wp_options SET option_value = 'https://<DASHBOARD_DOMAIN>/wp' WHERE option_name = 'siteurl';
-UPDATE wp_options SET option_value = 'https://<DASHBOARD_DOMAIN>' WHERE option_name = 'home';
+UPDATE wp_options SET option_value = '<DASHBOARD_SITE_URL>' WHERE option_name = 'siteurl';
+UPDATE wp_options SET option_value = '<DASHBOARD_SITE_URL>' WHERE option_name = 'home';
 ```
 
 and then prints the result of:
@@ -192,7 +192,7 @@ SELECT option_name, option_value FROM wp_options WHERE option_name IN ('siteurl'
 ```
 
 This only runs when Dashboard is included (`all` or `dashboard`) and is
-skipped with a warning if `DASHBOARD_DOMAIN` is unset.
+skipped with a warning if `DASHBOARD_SITE_URL` is unset.
 
 ## Reinstall / Upgrade
 

@@ -583,15 +583,16 @@ update_dashboard_site_url() {
   local raw_domain escaped_domain site_url home_url
   local db_name db_user db_password mysql_auth
 
-  raw_domain="${DASHBOARD_DOMAIN:-}"
+  raw_domain="${DASHBOARD_SITE_URL:-}"
   if [[ -z "$raw_domain" ]]; then
-    warn "DASHBOARD_DOMAIN is empty; skipping WordPress siteurl/home update"
+    warn "DASHBOARD_SITE_URL is empty; skipping WordPress siteurl/home update"
     return 0
   fi
 
+  # DASHBOARD_SITE_URL is the full URL (scheme + host + path), used as-is.
   escaped_domain="$(escape_sql_literal "$raw_domain")"
-  site_url="https://${escaped_domain}/wp"
-  home_url="https://${escaped_domain}"
+  site_url="${escaped_domain}"
+  home_url="${escaped_domain}"
 
   db_name="${DASHBOARD_MYSQL_DB_NAME:-wordpress}"
   db_user="${DASHBOARD_MYSQL_WP_USER:-wordpress}"
