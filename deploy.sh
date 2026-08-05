@@ -70,6 +70,7 @@ usage() {
     down                Stop stacks (volumes kept)
     restart             down + up
     pull                Pull images only
+    prune               Remove dangling images left behind by re-pulled floating tags
     status              Show running containers
     logs <stack> [svc]  Follow logs:
                         stack: traefik | amp | dashboard | <container-name>
@@ -86,6 +87,7 @@ usage() {
   Env toggles:
     USE_TRAEFIK=true|false
     DEPLOY_TARGET=all|amp|dashboard
+    SKIP_IMAGE_PRUNE=true|false   Skip dangling image cleanup during deploy/pull/prune
 
 EOF
 }
@@ -819,6 +821,18 @@ pull_images() {
   fi
 }
 
+prune_images() {
+  # Floating tags (e.g. main-testing) leave the previous image dangling on
+  # every re-pull; clean those up so stale image IDs don't linger on disk.
+  if is_truthy "${SKIP_IMAGE_PRUNE:-false}"; then
+    info "SKIP_IMAGE_PRUNE=true; skipping dangling image cleanup"
+    return 0
+  fi
+
+  log "Removing dangling images..."
+  docker image prune -f >/dev/null || warn "docker image prune failed; continuing"
+}
+
 up_all() {
   if [[ "$USE_TRAEFIK" == "true" ]]; then
     log "Starting Traefik stack..."
@@ -942,6 +956,7 @@ case "$COMMAND" in
     ecr_login
     registry_login
     pull_images
+    prune_images
     up_all
     log "Deploy complete."
     show_status
@@ -981,7 +996,12 @@ case "$COMMAND" in
     ecr_login
     registry_login
     pull_images
+    prune_images
     log "Pull complete. Run '$0 up' to apply updated images."
+    ;;
+  prune)
+    prune_images
+    log "Prune complete."
     ;;
   status)
     check_requirements
