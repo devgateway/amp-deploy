@@ -2,12 +2,16 @@ services:
   eureka:
     image: ${REPO}/eureka:${DASHBOARD_TAG}
     restart: unless-stopped
+    environment:
+      LOGGING_FILE_NAME: /var/log/app/eureka.log
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
       interval: 20s
       timeout: 20s
       retries: 5
       start_period: 45s
+    volumes:
+      - ${DASHBOARD_LOGS_DIR:-./logs}/eureka:/var/log/app
     networks:
       - backend
 
@@ -20,6 +24,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: "${DASHBOARD_DB_PASSWORD}"
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka:8761/eureka/"
       JAVA_OPTS: "-Xmx200m -Xms200m"
+      LOGGING_FILE_NAME: /var/log/app/gateway.log
     depends_on:
       postgres:
         condition: service_healthy
@@ -27,6 +32,8 @@ services:
         condition: service_started
       starter:
         condition: service_started
+    volumes:
+      - ${DASHBOARD_LOGS_DIR:-./logs}/gateway:/var/log/app
     networks:
       - backend
 
@@ -41,6 +48,7 @@ services:
       SPRING_DATA_REDIS_PORT: "6379"
       SPRING_DATA_REDIS_PASSWORD: "${REDIS_PASSWORD:-admin}"
       JAVA_OPTS: "-Xmx200m -Xms200m"
+      LOGGING_FILE_NAME: /var/log/app/superset-proxy.log
     depends_on:
       postgres:
         condition: service_healthy
@@ -50,6 +58,8 @@ services:
         condition: service_started
       cache:
         condition: service_started
+    volumes:
+      - ${DASHBOARD_LOGS_DIR:-./logs}/superset-proxy:/var/log/app
     networks:
       - backend
 
@@ -91,11 +101,14 @@ services:
       SPRING_APPLICATION_NAME: "stats"
       SPRING_LIQUIBASE_ENABLED: "false"
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka:8761/eureka/"
+      LOGGING_FILE_NAME: /var/log/app/stats.log
     depends_on:
       postgres:
         condition: service_healthy
       eureka:
         condition: service_started
+    volumes:
+      - ${DASHBOARD_LOGS_DIR:-./logs}/stats:/var/log/app
     networks:
       - backend
 
@@ -117,11 +130,14 @@ services:
       SPRING_APPLICATION_NAME: "starter"
       SPRING_LIQUIBASE_ENABLED: "true"
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka:8761/eureka/"
+      LOGGING_FILE_NAME: /var/log/app/starter.log
     depends_on:
       postgres:
         condition: service_healthy
       eureka:
         condition: service_started
+    volumes:
+      - ${DASHBOARD_LOGS_DIR:-./logs}/starter:/var/log/app
     networks:
       - backend
 
@@ -140,6 +156,7 @@ services:
         condition: service_started
     volumes:
       - wordpress:/var/www/html
+      - ${DASHBOARD_LOGS_DIR:-./logs}/wordpress:/var/log/apache2
     networks:
       - backend
 
@@ -176,6 +193,7 @@ services:
       - "${DASHBOARD_PORT:-8081}:80"
     volumes:
       - wordpress:/var/www/html:ro
+      - ${DASHBOARD_LOGS_DIR:-./logs}/nginx:/var/log/nginx
     networks:
       - backend
       - frontend
@@ -223,6 +241,7 @@ services:
       SPRING_APPLICATION_NAME: "amp-funding"
       VIZ_IMPORT_DIRECTORY: "/opt/viz/amp_funding"
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka:8761/eureka/"
+      LOGGING_FILE_NAME: /var/log/app/amp-funding.log
     depends_on:
       postgres:
         condition: service_healthy
@@ -232,6 +251,7 @@ services:
         condition: service_started
     volumes:
       - amp_funding_data:/opt/viz/amp_funding
+      - ${DASHBOARD_LOGS_DIR:-./logs}/amp-funding:/var/log/app
     networks:
       - backend
 
@@ -246,6 +266,7 @@ services:
       SPRING_APPLICATION_NAME: "amp-indicator-dashboard"
       VIZ_IMPORT_DIRECTORY: "/opt/viz/amp_indicator_dashboard"
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka:8761/eureka/"
+      LOGGING_FILE_NAME: /var/log/app/amp-indicator-dashboard.log
     depends_on:
       postgres:
         condition: service_healthy
@@ -255,6 +276,7 @@ services:
         condition: service_started
     volumes:
       - amp_indicator_dashboard_data:/opt/viz/amp_indicator_dashboard
+      - ${DASHBOARD_LOGS_DIR:-./logs}/amp-indicator-dashboard:/var/log/app
     networks:
       - backend
 
@@ -269,6 +291,7 @@ services:
       SPRING_APPLICATION_NAME: "amp-ndc-financing"
       VIZ_IMPORT_DIRECTORY: "/opt/viz/amp_ndc_financing"
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka:8761/eureka/"
+      LOGGING_FILE_NAME: /var/log/app/amp-ndc-financing.log
     depends_on:
       postgres:
         condition: service_healthy
@@ -278,6 +301,7 @@ services:
         condition: service_started
     volumes:
       - amp_ndc_financing_data:/opt/viz/amp_ndc_financing
+      - ${DASHBOARD_LOGS_DIR:-./logs}/amp-ndc-financing:/var/log/app
     networks:
       - backend
 
@@ -292,6 +316,7 @@ services:
       SPRING_APPLICATION_NAME: "amp-ndc-scenario"
       VIZ_IMPORT_DIRECTORY: "/opt/viz/amp_ndc_scenario"
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka:8761/eureka/"
+      LOGGING_FILE_NAME: /var/log/app/amp-ndc-scenario.log
     depends_on:
       postgres:
         condition: service_healthy
@@ -301,6 +326,7 @@ services:
         condition: service_started
     volumes:
       - amp_ndc_scenario_data:/opt/viz/amp_ndc_scenario
+      - ${DASHBOARD_LOGS_DIR:-./logs}/amp-ndc-scenario:/var/log/app
     networks:
       - backend
 
@@ -315,6 +341,7 @@ services:
       SPRING_APPLICATION_NAME: "amp-ndc-emissions"
       VIZ_IMPORT_DIRECTORY: "/opt/viz/amp_ndc_emissions"
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka:8761/eureka/"
+      LOGGING_FILE_NAME: /var/log/app/amp-ndc-emissions.log
     depends_on:
       postgres:
         condition: service_healthy
@@ -324,6 +351,7 @@ services:
         condition: service_started
     volumes:
       - amp_ndc_emissions_data:/opt/viz/amp_ndc_emissions
+      - ${DASHBOARD_LOGS_DIR:-./logs}/amp-ndc-emissions:/var/log/app
     networks:
       - backend
 
@@ -338,6 +366,7 @@ services:
       SPRING_APPLICATION_NAME: "map-service"
       VIZ_IMPORT_DIRECTORY: "/opt/viz/map_service"
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka:8761/eureka/"
+      LOGGING_FILE_NAME: /var/log/app/map-service.log
     depends_on:
       postgres:
         condition: service_healthy
@@ -347,6 +376,7 @@ services:
         condition: service_started
     volumes:
       - map_service_data:/opt/viz/map_service
+      - ${DASHBOARD_LOGS_DIR:-./logs}/map-service:/var/log/app
     networks:
       - backend
 
@@ -361,6 +391,7 @@ services:
       SPRING_APPLICATION_NAME: "amp-indicator-progress"
       VIZ_IMPORT_DIRECTORY: "/opt/viz/amp_indicator_progress"
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka:8761/eureka/"
+      LOGGING_FILE_NAME: /var/log/app/amp-indicator-progress.log
     depends_on:
       postgres:
         condition: service_healthy
@@ -370,6 +401,7 @@ services:
         condition: service_started
     volumes:
       - amp_indicator_progress_data:/opt/viz/amp_indicator_progress
+      - ${DASHBOARD_LOGS_DIR:-./logs}/amp-indicator-progress:/var/log/app
     networks:
       - backend
 
@@ -386,6 +418,7 @@ services:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka:8761/eureka/"
       WOCAT_BASE_URL: "https://qcat.wocat.net"
       WOCAT_VERSION_URL_EN: "/en/api/v2/questionnaires/"
+      LOGGING_FILE_NAME: /var/log/app/amp-wocat.log
     depends_on:
       postgres:
         condition: service_healthy
@@ -395,6 +428,7 @@ services:
         condition: service_started
     volumes:
       - amp_wocat_data:/opt/viz/amp_wocat
+      - ${DASHBOARD_LOGS_DIR:-./logs}/amp-wocat:/var/log/app
     networks:
       - backend
 

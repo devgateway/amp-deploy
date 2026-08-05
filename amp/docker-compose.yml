@@ -17,6 +17,8 @@ services:
         condition: service_healthy
     ports:
       - "${AMP_PORT:-8080}:8080"
+    volumes:
+      - ${AMP_LOGS_DIR:-./logs}:/usr/local/tomcat/logs
     labels:
       traefik.enable: "true"
       traefik.http.routers.amp.rule: "Host(`${AMP_DOMAIN}`)"

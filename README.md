@@ -66,6 +66,22 @@ Traefik is optional and can be toggled via `--with-traefik` /
 set, Traefik is enabled automatically only when `traefik/docker-compose.yml`
 exists.
 
+## Logs on the host
+
+AMP and most dashboard services write logs to a host directory instead of
+only being available via `docker compose logs`:
+
+- AMP (Tomcat/`catalina.out`): `${AMP_LOGS_DIR:-./logs}` under `deploy/amp/`
+- Dashboard nginx, wordpress (apache), and every Spring Boot service (eureka,
+  gateway, superset-proxy, stats, starter, amp-funding,
+  amp-indicator-dashboard, amp-ndc-financing, amp-ndc-scenario,
+  amp-ndc-emissions, map-service, amp-indicator-progress, amp-wocat): each
+  gets its own subdirectory under `${DASHBOARD_LOGS_DIR:-./logs}` in
+  `deploy/amp-dashboard/` (e.g. `logs/eureka/eureka.log`, `logs/nginx/`)
+
+MySQL, Postgres, Redis, and Superset still only log to stdout — use
+`./deploy.sh logs dashboard <service>` for those.
+
 ### Deploying both stacks (default)
 
 With no scope flag, every command acts on **AMP and Dashboard together**:
