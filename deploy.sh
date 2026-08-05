@@ -282,6 +282,32 @@ amp_db_has_user_tables() {
   [[ -n "$count" && "$count" != "0" ]]
 }
 
+# Reads a custom-format pg_dump's table of contents without touching any DB,
+# so we can tell AMP dumps and dashboard 'viz' dumps apart before restoring.
+dump_has_table() {
+  local container="$1" file="$2" table="$3"
+  docker exec -i "$container" pg_restore -l < "$file" 2>/dev/null | grep -qiE "TABLE[[:space:]]+[^ ]+[[:space:]]+${table}([[:space:]]|\$)"
+}
+
+# databasechangelog is Liquibase's own bookkeeping table, unique to AMP dumps.
+guard_amp_backup_file() {
+  local file="$1"
+  if dump_has_table "$AMP_DB_CONTAINER" "$file" "databasechangelog"; then
+    return 0
+  fi
+  if dump_has_table "$AMP_DB_CONTAINER" "$file" "dataset_record" || dump_has_table "$AMP_DB_CONTAINER" "$file" "category"; then
+    die "AMP_DB_BACKUP_FILE ($file) looks like a dashboard 'viz' dump (contains dashboard tables), not an AMP dump. Refusing to restore into $AMP_DB_NAME to avoid mixing schemas."
+  fi
+}
+
+# dataset_record/category are Hibernate single-table-inheritance roots, unique to dashboard dumps.
+guard_dashboard_postgres_backup_file() {
+  local file="$1"
+  if dump_has_table "$DASHBOARD_POSTGRES_CONTAINER" "$file" "databasechangelog"; then
+    die "DASHBOARD_POSTGRES_BACKUP_FILE ($file) looks like an AMP database dump (contains 'databasechangelog'), not a dashboard 'viz' dump. Refusing to restore into viz to avoid mixing schemas."
+  fi
+}
+
 resolve_amp_backup_file() {
   local configured
 
@@ -310,6 +336,7 @@ restore_amp_db_if_needed() {
     return 0
   fi
   [[ -f "$backup_file" ]] || die "Configured AMP_DB_BACKUP_FILE not found: $backup_file"
+  guard_amp_backup_file "$backup_file"
 
   if ! confirm_restore "AMP DB from $backup_file"; then
     info "Skipped AMP DB restore by user choice"
@@ -448,6 +475,7 @@ restore_dashboard_postgres_if_needed() {
     return 0
   fi
   [[ -f "$backup_file" ]] || die "Configured DASHBOARD_POSTGRES_BACKUP_FILE not found: $backup_file"
+  guard_dashboard_postgres_backup_file "$backup_file"
 
   if ! confirm_restore "dashboard postgres from $backup_file"; then
     info "Skipped dashboard postgres restore by user choice"

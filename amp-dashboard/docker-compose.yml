@@ -242,6 +242,9 @@ services:
       VIZ_IMPORT_DIRECTORY: "/opt/viz/amp_funding"
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka:8761/eureka/"
       LOGGING_FILE_NAME: /var/log/app/amp-funding.log
+      SPRING_LIQUIBASE_ENABLED: "true"
+      SPRING_LIQUIBASE_CHANGE-LOG: "classpath:liquibase-changeLog.xml"
+      SPRING_JPA_PROPERTIES_HIBERNATE_DEFAULT_SCHEMA: "amp_funding"
     depends_on:
       postgres:
         condition: service_healthy
@@ -267,6 +270,9 @@ services:
       VIZ_IMPORT_DIRECTORY: "/opt/viz/amp_indicator_dashboard"
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka:8761/eureka/"
       LOGGING_FILE_NAME: /var/log/app/amp-indicator-dashboard.log
+      SPRING_LIQUIBASE_ENABLED: "true"
+      SPRING_LIQUIBASE_CHANGE-LOG: "classpath:liquibase-changeLog.xml"
+      SPRING_JPA_PROPERTIES_HIBERNATE_DEFAULT_SCHEMA: "amp_indicator_dashboard"
     depends_on:
       postgres:
         condition: service_healthy
@@ -292,6 +298,10 @@ services:
       VIZ_IMPORT_DIRECTORY: "/opt/viz/amp_ndc_financing"
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka:8761/eureka/"
       LOGGING_FILE_NAME: /var/log/app/amp-ndc-financing.log
+      SPRING_LIQUIBASE_ENABLED: "true"
+      SPRING_LIQUIBASE_DEFAULT-SCHEMA: "public"
+      SPRING_LIQUIBASE_CHANGE-LOG: "classpath:liquibase-changeLog.xml"
+      SPRING_JPA_PROPERTIES_HIBERNATE_DEFAULT_SCHEMA: "amp_ndc_financing"
     depends_on:
       postgres:
         condition: service_healthy
@@ -317,6 +327,10 @@ services:
       VIZ_IMPORT_DIRECTORY: "/opt/viz/amp_ndc_scenario"
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka:8761/eureka/"
       LOGGING_FILE_NAME: /var/log/app/amp-ndc-scenario.log
+      SPRING_LIQUIBASE_ENABLED: "true"
+      SPRING_LIQUIBASE_DEFAULT-SCHEMA: "public"
+      SPRING_LIQUIBASE_CHANGE-LOG: "classpath:liquibase-changeLog.xml"
+      SPRING_JPA_PROPERTIES_HIBERNATE_DEFAULT_SCHEMA: "amp_ndc_scenario"
     depends_on:
       postgres:
         condition: service_healthy
@@ -342,6 +356,10 @@ services:
       VIZ_IMPORT_DIRECTORY: "/opt/viz/amp_ndc_emissions"
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka:8761/eureka/"
       LOGGING_FILE_NAME: /var/log/app/amp-ndc-emissions.log
+      SPRING_LIQUIBASE_ENABLED: "true"
+      SPRING_LIQUIBASE_DEFAULT-SCHEMA: "public"
+      SPRING_LIQUIBASE_CHANGE-LOG: "classpath:liquibase-changeLog.xml"
+      SPRING_JPA_PROPERTIES_HIBERNATE_DEFAULT_SCHEMA: "amp_ndc_emissions"
     depends_on:
       postgres:
         condition: service_healthy
@@ -367,6 +385,9 @@ services:
       VIZ_IMPORT_DIRECTORY: "/opt/viz/map_service"
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka:8761/eureka/"
       LOGGING_FILE_NAME: /var/log/app/map-service.log
+      SPRING_LIQUIBASE_ENABLED: "true"
+      SPRING_LIQUIBASE_CHANGE-LOG: "classpath:liquibase-changeLog.xml"
+      SPRING_JPA_PROPERTIES_HIBERNATE_DEFAULT_SCHEMA: "map_service"
     depends_on:
       postgres:
         condition: service_healthy
@@ -392,6 +413,9 @@ services:
       VIZ_IMPORT_DIRECTORY: "/opt/viz/amp_indicator_progress"
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka:8761/eureka/"
       LOGGING_FILE_NAME: /var/log/app/amp-indicator-progress.log
+      SPRING_LIQUIBASE_ENABLED: "true"
+      SPRING_LIQUIBASE_CHANGE-LOG: "classpath:liquibase-changeLog.xml"
+      SPRING_JPA_PROPERTIES_HIBERNATE_DEFAULT_SCHEMA: "amp_indicator_progress"
     depends_on:
       postgres:
         condition: service_healthy
@@ -419,6 +443,9 @@ services:
       WOCAT_BASE_URL: "https://qcat.wocat.net"
       WOCAT_VERSION_URL_EN: "/en/api/v2/questionnaires/"
       LOGGING_FILE_NAME: /var/log/app/amp-wocat.log
+      SPRING_LIQUIBASE_ENABLED: "true"
+      SPRING_LIQUIBASE_CHANGE-LOG: "classpath:liquibase-changeLog.xml"
+      SPRING_JPA_PROPERTIES_HIBERNATE_DEFAULT_SCHEMA: "amp_wocat"
     depends_on:
       postgres:
         condition: service_healthy
