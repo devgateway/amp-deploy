@@ -458,7 +458,7 @@ restore_dashboard_postgres_if_needed() {
   fi
 
   log "Restoring dashboard postgres from $backup_file ..."
-  if docker exec -i "$DASHBOARD_POSTGRES_CONTAINER" pg_restore -U postgres -d viz --clean --if-exists < "$backup_file"; then
+  if docker exec -i "$DASHBOARD_POSTGRES_CONTAINER" pg_restore -U postgres -d viz --clean < "$backup_file"; then
     log "Dashboard postgres restore completed"
   else
     warn "Dashboard postgres restore finished with PostgreSQL errors; continuing deployment"
