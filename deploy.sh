@@ -580,18 +580,17 @@ restore_dashboard_uploads_if_needed() {
 }
 
 update_dashboard_site_url() {
-  local raw_domain escaped_domain site_url home_url
+  local raw_url site_url home_url
   local db_name db_user db_password mysql_auth
 
-  raw_domain="${DASHBOARD_DOMAIN:-}"
-  if [[ -z "$raw_domain" ]]; then
-    warn "DASHBOARD_DOMAIN is empty; skipping WordPress siteurl/home update"
+  raw_url="${DASHBOARD_SITE_URL:-}"
+  if [[ -z "$raw_url" ]]; then
+    warn "DASHBOARD_SITE_URL is empty; skipping WordPress siteurl/home update"
     return 0
   fi
 
-  escaped_domain="$(escape_sql_literal "$raw_domain")"
-  site_url="https://${escaped_domain}/wp"
-  home_url="https://${escaped_domain}"
+  site_url="$(escape_sql_literal "$raw_url")"
+  home_url="$site_url"
 
   db_name="${DASHBOARD_MYSQL_DB_NAME:-wordpress}"
   db_user="${DASHBOARD_MYSQL_WP_USER:-wordpress}"
