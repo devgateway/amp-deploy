@@ -173,7 +173,7 @@ services:
       ui-customizer:
         condition: service_started
     ports:
-      - "8081:80"
+      - "${DASHBOARD_PORT:-8081}:80"
     volumes:
       - wordpress:/var/www/html:ro
     networks:
