@@ -93,7 +93,7 @@ services:
   stats:
     image: ${REPO}/api:${DASHBOARD_TAG}
     restart: unless-stopped
-    command: stats
+    command: ["sh", "-c", "exit 0"]
     environment:
       SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/viz"
       SPRING_DATASOURCE_USERNAME: "postgres"
