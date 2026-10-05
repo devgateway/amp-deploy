@@ -42,6 +42,26 @@ repository.
 ./deploy.sh logs <traefik|amp|dashboard|container> [service]
 ```
 
+By default, commands operate on both application stacks. Add `--only-amp` or
+`--only-dashboard` to `deploy`, `up`, `down`, `restart`, `pull`, or `status` to
+operate on just one stack:
+
+```
+./deploy.sh deploy --only-amp
+./deploy.sh deploy --only-dashboard
+./deploy.sh restart --only-amp
+./deploy.sh pull --only-dashboard
+```
+
+The two selection flags cannot be combined. Only the selected stack's Compose
+file is required; the other stack's registry login and data initialization are
+skipped. Single-stack commands leave shared Traefik untouched unless
+`--with-traefik` is supplied explicitly (even if `USE_TRAEFIK=true` is set).
+For a dashboard-only update behind an existing Traefik instance, use
+`--with-traefik` to include the dashboard Traefik overlay. This also manages
+the shared Traefik stack, so a targeted `down` or `restart` with that flag
+can interrupt routing to both applications.
+
 Traefik is optional and can be toggled via `--with-traefik` /
 `--without-traefik`, or the `USE_TRAEFIK=true|false` env var. If neither is
 set, Traefik is enabled automatically only when `traefik/docker-compose.yml`
