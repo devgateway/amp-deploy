@@ -26,6 +26,9 @@ repository.
 The script prefers the `docker compose` plugin and automatically falls back to
 the standalone `docker-compose` command when the plugin is unavailable. Docker
 and at least one working Compose command must be installed.
+The script checks support for `--env-file` and `pull --quiet` before using them.
+Older versions without `--env-file` use the variables exported from your `.env`
+by the script instead.
 
 1. Copy the sample env and fill in real values:
    ```

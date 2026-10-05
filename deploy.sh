@@ -54,6 +54,7 @@ USE_TRAEFIK=""
 CLI_TRAEFIK_MODE=""
 DEPLOY_TARGET="all"
 COMPOSE_CMD=()
+COMPOSE_PULL_ARGS=(pull)
 
 usage() {
   cat <<EOF
@@ -123,6 +124,8 @@ parse_common_flags() {
 }
 
 check_requirements() {
+  local compose_help pull_help
+
   command -v docker >/dev/null 2>&1 || die "docker is not installed"
   if docker compose version >/dev/null 2>&1; then
     COMPOSE_CMD=(docker compose)
@@ -130,6 +133,15 @@ check_requirements() {
     COMPOSE_CMD=(docker-compose)
   else
     die "Neither 'docker compose' nor 'docker-compose' is available"
+  fi
+  compose_help="$("${COMPOSE_CMD[@]}" --help)"
+  pull_help="$("${COMPOSE_CMD[@]}" pull --help)"
+  if [[ "$compose_help" == *"--env-file"* ]]; then
+    COMPOSE_CMD+=(--env-file "$ENV_FILE")
+  fi
+  COMPOSE_PULL_ARGS=(pull)
+  if [[ "$pull_help" == *"--quiet"* ]]; then
+    COMPOSE_PULL_ARGS+=(--quiet)
   fi
   [[ -f "$ENV_FILE" ]] || die ".env not found at $ENV_FILE"
   if [[ "$DEPLOY_TARGET" != "dashboard" ]]; then
@@ -182,11 +194,11 @@ resolve_traefik_mode() {
 }
 
 amp_compose() {
-  "${COMPOSE_CMD[@]}" -f "$AMP_COMPOSE" --env-file "$ENV_FILE" -p "$AMP_PROJECT" "$@"
+  "${COMPOSE_CMD[@]}" -f "$AMP_COMPOSE" -p "$AMP_PROJECT" "$@"
 }
 
 dash_compose() {
-  local cmd=("${COMPOSE_CMD[@]}" -f "$DASH_COMPOSE" --env-file "$ENV_FILE" -p "$DASH_PROJECT")
+  local cmd=("${COMPOSE_CMD[@]}" -f "$DASH_COMPOSE" -p "$DASH_PROJECT")
   if [[ "$USE_TRAEFIK" == "true" && -f "$DASH_TRAEFIK_OVERRIDE" ]]; then
     cmd+=( -f "$DASH_TRAEFIK_OVERRIDE" )
   fi
@@ -194,7 +206,7 @@ dash_compose() {
 }
 
 traefik_compose() {
-  "${COMPOSE_CMD[@]}" -f "$TRAEFIK_COMPOSE" --env-file "$ENV_FILE" -p "$TRAEFIK_PROJECT" "$@"
+  "${COMPOSE_CMD[@]}" -f "$TRAEFIK_COMPOSE" -p "$TRAEFIK_PROJECT" "$@"
 }
 
 escape_sql_literal() {
@@ -755,19 +767,19 @@ registry_login() {
 pull_images() {
   if [[ "$USE_TRAEFIK" == "true" ]]; then
     log "Pulling Traefik images..."
-    traefik_compose pull --quiet
+    traefik_compose "${COMPOSE_PULL_ARGS[@]}"
   else
     info "Traefik is disabled; skipping Traefik image pull"
   fi
 
   if [[ "$DEPLOY_TARGET" != "dashboard" ]]; then
     log "Pulling AMP images..."
-    amp_compose pull --quiet
+    amp_compose "${COMPOSE_PULL_ARGS[@]}"
   fi
 
   if [[ "$DEPLOY_TARGET" != "amp" ]]; then
     log "Pulling dashboard images..."
-    dash_compose pull --quiet
+    dash_compose "${COMPOSE_PULL_ARGS[@]}"
   fi
 }
 
