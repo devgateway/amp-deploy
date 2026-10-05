@@ -53,6 +53,7 @@ die()  { echo -e "${RED}[$(date '+%Y-%m-%d %T')] ERROR:${NC} $*" >&2; exit 1; }
 USE_TRAEFIK=""
 CLI_TRAEFIK_MODE=""
 DEPLOY_TARGET="all"
+COMPOSE_CMD=()
 
 usage() {
   cat <<EOF
@@ -123,7 +124,13 @@ parse_common_flags() {
 
 check_requirements() {
   command -v docker >/dev/null 2>&1 || die "docker is not installed"
-  docker compose version >/dev/null 2>&1 || die "'docker compose' plugin not found"
+  if docker compose version >/dev/null 2>&1; then
+    COMPOSE_CMD=(docker compose)
+  elif command -v docker-compose >/dev/null 2>&1 && docker-compose version >/dev/null 2>&1; then
+    COMPOSE_CMD=(docker-compose)
+  else
+    die "Neither 'docker compose' nor 'docker-compose' is available"
+  fi
   [[ -f "$ENV_FILE" ]] || die ".env not found at $ENV_FILE"
   if [[ "$DEPLOY_TARGET" != "dashboard" ]]; then
     [[ -f "$AMP_COMPOSE" ]] || die "AMP compose not found at $AMP_COMPOSE"
@@ -175,11 +182,11 @@ resolve_traefik_mode() {
 }
 
 amp_compose() {
-  docker compose -f "$AMP_COMPOSE" --env-file "$ENV_FILE" -p "$AMP_PROJECT" "$@"
+  "${COMPOSE_CMD[@]}" -f "$AMP_COMPOSE" --env-file "$ENV_FILE" -p "$AMP_PROJECT" "$@"
 }
 
 dash_compose() {
-  local cmd=(docker compose -f "$DASH_COMPOSE" --env-file "$ENV_FILE" -p "$DASH_PROJECT")
+  local cmd=("${COMPOSE_CMD[@]}" -f "$DASH_COMPOSE" --env-file "$ENV_FILE" -p "$DASH_PROJECT")
   if [[ "$USE_TRAEFIK" == "true" && -f "$DASH_TRAEFIK_OVERRIDE" ]]; then
     cmd+=( -f "$DASH_TRAEFIK_OVERRIDE" )
   fi
@@ -187,7 +194,7 @@ dash_compose() {
 }
 
 traefik_compose() {
-  docker compose -f "$TRAEFIK_COMPOSE" --env-file "$ENV_FILE" -p "$TRAEFIK_PROJECT" "$@"
+  "${COMPOSE_CMD[@]}" -f "$TRAEFIK_COMPOSE" --env-file "$ENV_FILE" -p "$TRAEFIK_PROJECT" "$@"
 }
 
 escape_sql_literal() {

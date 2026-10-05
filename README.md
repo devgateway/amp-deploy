@@ -23,6 +23,10 @@ repository.
 
 ## Setup
 
+The script prefers the `docker compose` plugin and automatically falls back to
+the standalone `docker-compose` command when the plugin is unavailable. Docker
+and at least one working Compose command must be installed.
+
 1. Copy the sample env and fill in real values:
    ```
    cp .env.example .env
