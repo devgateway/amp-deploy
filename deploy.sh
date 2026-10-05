@@ -124,7 +124,7 @@ parse_common_flags() {
 }
 
 check_requirements() {
-  local compose_help pull_help
+  local compose_help pull_help compose_version compose_major compose_minor
 
   command -v docker >/dev/null 2>&1 || die "docker is not installed"
   if docker compose version >/dev/null 2>&1; then
@@ -133,6 +133,16 @@ check_requirements() {
     COMPOSE_CMD=(docker-compose)
   else
     die "Neither 'docker compose' nor 'docker-compose' is available"
+  fi
+  compose_version="$("${COMPOSE_CMD[@]}" version --short)" || die "Cannot determine Compose version; install Docker Compose v2 on this host"
+  if [[ "$compose_version" =~ ^v?([0-9]+)\.([0-9]+)\.([0-9]+) ]]; then
+    compose_major="${BASH_REMATCH[1]}"
+    compose_minor="${BASH_REMATCH[2]}"
+    if (( compose_major < 1 || (compose_major == 1 && compose_minor < 27) )); then
+      die "Compose $compose_version is too old for these Compose files (requires v2 or standalone 1.27+). Install Docker Compose v2 on this host and rerun."
+    fi
+  else
+    die "Unrecognized Compose version '$compose_version'; install Docker Compose v2 on this host"
   fi
   compose_help="$("${COMPOSE_CMD[@]}" --help)"
   pull_help="$("${COMPOSE_CMD[@]}" pull --help)"

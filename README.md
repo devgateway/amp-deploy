@@ -25,10 +25,18 @@ repository.
 
 The script prefers the `docker compose` plugin and automatically falls back to
 the standalone `docker-compose` command when the plugin is unavailable. Docker
-and at least one working Compose command must be installed.
+and a compatible Compose command must be installed: Docker Compose v2 is
+recommended; standalone Compose must be at least v1.27 to read these versionless
+Compose Specification files. The script rejects older versions before deployment.
 The script checks support for `--env-file` and `pull --quiet` before using them.
 Older versions without `--env-file` use the variables exported from your `.env`
 by the script instead.
+
+An error such as `Invalid interpolation format ... "${REDIS_PASSWORD:-admin}"`
+or a reference to a service named `services` indicates an obsolete Compose parser.
+Install Docker Compose v2 on the deployment host and verify `docker compose version`
+before rerunning the deployment; changing only the Redis interpolation does not
+make the rest of the file compatible with that parser.
 
 1. Copy the sample env and fill in real values:
    ```
