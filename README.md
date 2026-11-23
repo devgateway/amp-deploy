@@ -11,6 +11,7 @@ deploy/
   .env                              # your local config (not committed)
   .env.example                      # sample/reference config
   deploy.sh                         # main orchestrator script (deploy/up/down/restore)
+  install-windows.sh                # Windows/WSL setup and deployment helper
   backup.sh                         # backup script for AMP + Dashboard data
   reinstall.sh                      # reinstall/upgrade script (keep or wipe data)
   amp/docker-compose.yml            # AMP app + bundled AMP Postgres DB
@@ -48,6 +49,85 @@ either or both stacks and is toggled independently (`--with-traefik` /
    ```
 2. Edit `.env` with your image tags, domains, DB credentials, and (optionally)
    restore file paths.
+
+### Windows Server
+
+Docker Desktop is [not supported on Windows Server](https://docs.docker.com/desktop/setup/install/windows-install/).
+For production, run a Linux VM on the server, install Docker Engine and the
+Docker Compose plugin in the VM, and use the Linux setup and `./deploy.sh`
+commands in this README. Configure the VM and Docker to start automatically,
+and allow access to the required ports through the VM and server firewalls.
+
+Windows Server 2022 and 2025 also support [WSL 2](https://learn.microsoft.com/en-us/windows/wsl/install-on-server),
+with Docker Engine installed inside the Linux distribution. This alternative
+has not been tested here and requires separate startup and networking setup.
+
+### Windows 10/11 (WSL 2)
+
+The stacks run as Linux containers. On Windows 10/11, use WSL 2 and Docker Desktop;
+the scripts are run in the Linux distribution, not in PowerShell or Git Bash.
+
+1. In an administrator PowerShell, install WSL and Ubuntu, then restart if
+  prompted. Complete the Ubuntu user setup when it opens:
+  ```powershell
+  wsl --install -d Ubuntu
+  ```
+  Check `wsl -l -v` in PowerShell and make sure Ubuntu is running WSL version 2.
+  For an existing WSL 1 distribution, use `wsl --set-version Ubuntu 2`.
+2. Install and start [Docker Desktop for Windows](https://docs.docker.com/desktop/setup/install/windows-install/).
+  Enable the WSL 2 engine and Ubuntu under **Settings > Resources > WSL
+  Integration**, and use Linux containers. Allocate sufficient memory and
+  disk for the selected stacks; the default AMP JVM heap alone is 4 GB.
+3. Open Ubuntu and install the command-line prerequisites:
+  ```bash
+  sudo apt update
+  sudo apt install -y git curl unzip
+  ```
+  Clone this repository, or the parent repository and its deployment
+  submodule, into the Linux filesystem (for example, under `~`).
+  Change into the directory containing `deploy.sh`. Keeping the checkout in
+  WSL avoids Windows filesystem permission and performance issues.
+4. Run the installer once to check Docker and create `.env`:
+  ```bash
+  bash install-windows.sh
+  nano .env
+  ```
+  The installer does not overwrite an existing `.env` and does not deploy on
+  the run that creates it. Set the image tags and registry credentials, replace
+  the sample passwords, and configure the required database backup paths.
+  The default AMP image requires AWS ECR credentials; dashboard images may
+  require registry credentials. Backup paths must be Linux paths accessible
+  from WSL, either absolute or relative to this directory.
+
+  On empty volumes, the deploy script updates AMP's `DG_SITE_DOMAIN` table and
+  Dashboard's WordPress `wp_options` table before starting the apps. Configure
+  `AMP_DB_BACKUP_FILE` with a populated PostgreSQL custom-format dump and
+  `DASHBOARD_MYSQL_BACKUP_FILE` with a populated WordPress SQL dump for the
+  stacks being installed. Confirm the restore prompts when asked. See
+  [Restores](#restores) for additional restore options.
+
+  For local access without Traefik, set these values in `.env`:
+  ```dotenv
+  USE_TRAEFIK=false
+  AMP_SITE_DOMAIN=localhost:8080
+  DASHBOARD_SITE_URL=http://localhost:8081/wp
+  ```
+  Adjust the URLs if you change the ports or use public hostnames. The `.env`
+  file is also sourced by Bash, so quote values when necessary and use LF line
+  endings. Do not commit credentials or backups.
+5. Run the installer again to pull images and start both stacks:
+  ```bash
+  bash install-windows.sh
+  ```
+  Use `--amp-only` or `--dashboard-only` to install one stack, and
+  `--with-traefik` or `--without-traefik` to override the Traefik setting.
+  Docker Desktop must be running. With the default ports and Traefik disabled,
+  the services are available from the Windows browser at
+  `http://localhost:8080` and `http://localhost:8081`. Ensure those ports (and
+  port 80 if using Traefik) are free.
+
+Run the commands below, including backup and reinstall commands, from the same
+WSL distribution. Docker Desktop's WSL integration must remain enabled.
 
 ## Usage
 

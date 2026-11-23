@@ -747,6 +747,11 @@ ecr_login() {
   local image="${AMP_IMAGE:-}"
   local registry region account
 
+  if ! target_includes_amp; then
+    info "AMP is excluded from this run; skipping ECR login"
+    return 0
+  fi
+
   if [[ -z "$image" ]]; then
     warn "AMP_IMAGE not set in .env; skipping ECR login"
     return 0
@@ -777,6 +782,11 @@ ecr_login() {
 
 registry_login() {
   local image registry
+
+  if ! target_includes_dashboard; then
+    info "Dashboard is excluded from this run; skipping dashboard registry login"
+    return 0
+  fi
 
   image="${DASHBOARD_IMAGE:-${REPO:-}}"
   if [[ -z "$image" ]]; then
