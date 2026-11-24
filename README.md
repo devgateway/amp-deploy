@@ -1,7 +1,12 @@
-# AMP + AMP Dashboard Deployment Scripts
+# AMP + AMP Dashboard Deployment Guide
 
-Deploy **AMP** and **amp-dashboard** using pre-built container images and
-Docker Compose. Traefik is optional.
+Deploy **AMP** and **amp-dashboard** with Docker Compose using pre-built
+container images or images built from source. Traefik is optional.
+
+This guide assumes you have a folder containing the deployment scripts and
+configuration files obtained from the
+[AMP deployment files](https://github.com/devgateway/amp-deploy/tree/GGW).
+Copy that folder to the Linux host or WSL environment where you will deploy.
 
 ## Layout
 
@@ -89,6 +94,171 @@ memory for the databases, other services, and operating system.
   volumes, as described in the setup and restore instructions below. Keep
   credentials and backups secure.
 
+## Build Applications From Source
+
+Build and deploy on the same Linux server using the steps below. You do not
+need your own Docker registry: the application images stay on the server.
+Internet access is still needed for source dependencies, base images, and
+third-party service images. Allow additional disk space for build caches; the
+build can need more resources than the runtime estimates above.
+
+First complete steps 1-4 of [Linux Host (Ubuntu)](#linux-host-ubuntu) to
+install Docker and prepare the deployment files and configuration. Do not run
+the pull-based deployment in step 5; use the local deployment command below.
+Replace the example paths with your actual source and deployment directories.
+
+On Ubuntu, install Git and the SSH client if they are missing:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y git openssh-client
+```
+
+If an SSH agent is not already running, start one:
+
+```bash
+eval "$(ssh-agent -s)"
+```
+
+Register your SSH public key with GitHub and ensure your account can access
+the applications and their dependencies. See
+[GitHub's SSH setup guide](https://docs.github.com/en/authentication/connecting-to-github-with-ssh).
+Add the corresponding private key to the agent, replacing the example path if
+your key is stored elsewhere:
+
+```bash
+ssh-add "$HOME/.ssh/id_ed25519"
+ssh-add -l
+```
+
+### Get the Source Code
+
+Choose a directory for the source checkouts:
+
+```bash
+mkdir -p "$HOME/amp-source"
+cd "$HOME/amp-source"
+```
+
+Clone AMP if you intend to build it:
+
+```bash
+git clone --recurse-submodules git@github.com:devgateway/amp.git
+```
+
+Clone Dashboard if you intend to build it:
+
+```bash
+git clone --recurse-submodules git@github.com:devgateway/amp-dashboard.git
+```
+
+These commands check out the default branches. Select the appropriate release
+or branch for your installation before building. If you already have the
+source, use your existing directories instead.
+
+### Build AMP
+
+From the AMP source root, the directory containing `amp/Dockerfile`, initialize
+the source dependencies and confirm an SSH key is loaded:
+
+```bash
+cd "$HOME/amp-source/amp"
+ssh-add -l
+git submodule update --init --recursive
+```
+
+Build the image using the same BuildKit settings as the AMP image build script:
+
+```bash
+DOCKER_BUILDKIT=1 docker build --ssh default \
+  --build-arg SKIP_TESTS=true --build-arg BUILD_SOURCE=docker \
+  --tag amp-local:local ./amp
+```
+
+This example skips the image-build tests; omit `--build-arg SKIP_TESTS=true`
+to run them. The image includes its Java and Node build tools; they do not need
+to be installed on the host. For a different image name or tag, change the
+`--tag` value and use the same values below.
+
+**Database configuration:** The supplied AMP Dockerfile builds the application
+with a fixed database host (`db`), name (`amp`), user (`amp`), and password.
+It does not use the deployment's `AMP_DB_*` variables or the `JDBC_*` build
+arguments passed by the source build script. The `db` host alias is provided
+by the AMP Compose network, but the database name and credentials in `.env`
+must match the values embedded in the image. Changing `.env` alone does not
+change the application's connection. For production, adapt the source image
+to support secure database configuration before building and deploying it;
+do not use the sample password as a production credential.
+
+### Build Dashboard
+
+From the Dashboard source root, initialize the source dependencies, including
+the nested frontend libraries:
+
+```bash
+cd "$HOME/amp-source/amp-dashboard"
+git submodule update --init --recursive
+test -d front/react-lib/wp-react-lib/src
+```
+
+Choose a local image prefix, tag, and site theme. `PROJECT_SITE` corresponds to
+a directory under `custom/ui-customizer/src/scss`; use the correct theme for
+your installation. Confirm `front/nginx.conf` contains the intended nginx
+configuration, because it is included in the built nginx image.
+
+```bash
+export REPO=amp-dashboard-local
+export TAG=local
+export PROJECT_SITE=default
+test -f front/nginx.conf
+```
+
+Build the two customizer images first. The WordPress and nginx builds use them
+as base images. Then build the application images:
+
+```bash
+docker compose -f docker-compose.yml build ui-customizer wp-customizer
+docker compose -f docker-compose.yml build eureka gateway superset-proxy stats wordpress nginx
+```
+
+The `stats` build produces the shared `api` image used by the Dashboard's
+starter and data services. The Dashboard image builds include their Java and
+Node build tools; the shared API Dockerfile skips tests. Ensure the builder
+can access the locally built customizer images. Third-party database, Redis,
+and Superset images are pulled separately when the stack starts.
+
+### Deploy the Local Images
+
+In the deployment directory prepared during setup, open `.env`:
+
+```bash
+cd "$HOME/amp/deploy"
+nano .env
+```
+
+Use the actual deployment directory if it is different. Set the values for
+the applications you built, keeping the other settings from setup:
+
+```dotenv
+AMP_IMAGE=amp-local
+AMP_TAG=local
+REPO=amp-dashboard-local
+DASHBOARD_TAG=local
+DEPLOY_TARGET=all
+```
+
+To start both applications without Traefik, run:
+
+```bash
+./deploy.sh up --without-traefik
+```
+
+To start only one application, add `--amp-only` or `--dashboard-only`. Use
+`up`, not `deploy`: `up` uses the local application images without explicitly
+pulling them. Docker may still download missing third-party service images.
+Check startup with `./deploy.sh status --without-traefik`, using the same
+application flag if you selected one.
+
 ## Setup
 
 ### Linux Host (Ubuntu)
@@ -153,12 +323,16 @@ existing `.env`; edit it instead of replacing it.
 
 #### 4. Configure the Deployment
 
-In `.env`, set the image tags and registry credentials, replace the sample
-database passwords, and set the URLs users will access. For the default ECR
-AMP image, provide `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and
-`AWS_DEFAULT_REGION`. Set `DASHBOARD_REGISTRY_USER` and
-`DASHBOARD_REGISTRY_PASSWORD` if the dashboard registry requires them.
-The deploy script installs the AWS CLI if needed.
+In `.env`, set the image tags and URLs users will access, and replace sample
+database passwords where supported by the image. For source-built AMP, see
+the database configuration warning in [Build AMP](#build-amp).
+
+For the default pre-built ECR AMP image, provide `AWS_ACCESS_KEY_ID`,
+`AWS_SECRET_ACCESS_KEY`, and `AWS_DEFAULT_REGION`. Set
+`DASHBOARD_REGISTRY_USER` and `DASHBOARD_REGISTRY_PASSWORD` if the dashboard
+registry requires them. The deploy script installs the AWS CLI if needed.
+These registry credentials are not required for locally built images started
+with `./deploy.sh up`.
 
 For direct access without Traefik, set `USE_TRAEFIK=false`,
 `AMP_SITE_DOMAIN` to the actual host and port (for example,
